@@ -1,0 +1,47 @@
+import express from "express";
+import {
+  addUser,
+  editUser,
+  deleteUser,
+  getAllUsers,
+  getOneUser,
+} from "../controllers/userController.js";
+import {
+  logIn,
+  SignUp,
+  loggedInUser,
+  logOut,
+} from "../controllers/authController.js";
+import upload from "../middlewares/multer.js";
+import { authenticate } from "../middlewares/auth.js";
+
+const userRouter = express.Router();
+
+// Route for adding a new user
+userRouter.post("/", upload.single("image"), addUser);
+
+// Route for editing a user
+userRouter.patch("/", upload.single("image"), editUser);
+
+// Route for deleting a user
+userRouter.delete("/", deleteUser);
+
+// Route for getting all users
+userRouter.get("/", getAllUsers);
+
+// Route for getting one user by ID
+userRouter.post("/byId", getOneUser);
+
+// Route for user login
+userRouter.post("/login", logIn);
+
+// Route for user signup
+userRouter.post("/signup", upload.single("image"), SignUp);
+
+// Route for getting logged in user details
+userRouter.get("/logged-in-user", authenticate, loggedInUser);
+
+// Route for user logout
+userRouter.get("/logout", logOut);
+
+export default userRouter;
