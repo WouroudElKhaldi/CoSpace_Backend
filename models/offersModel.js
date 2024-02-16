@@ -17,7 +17,7 @@ const OfferSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["spaceOffer", "roomOffer"],
+      enum: ["spaceOffer", "serviceOffer"],
       required: true,
     },
     startDate: {
@@ -33,11 +33,11 @@ const OfferSchema = new mongoose.Schema(
       ref: "Space",
       required: true,
     },
-    roomId: {
+    serviceId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Room",
+      ref: "Service",
       required: function () {
-        return this.type === "roomOffer";
+        return this.type === "serviceOffer";
       },
     },
   },

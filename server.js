@@ -7,8 +7,6 @@ import amenitiesRouter from "./routes/amenitiesRoutes.js";
 import categoryRouter from "./routes/categoryRoutes.js";
 import ratingRouter from "./routes/ratingRoutes.js";
 import reservationRouter from "./routes/reservationRoutes.js";
-import roomImagesRouter from "./routes/roomImagesRoutes.js";
-import roomRouter from "./routes/roomRoutes.js";
 import rulesRouter from "./routes/rulesRoutes.js";
 import spaceImagesRouter from "./routes/spaceImagesRoutes.js";
 import spaceRouter from "./routes/spaceRoutes.js";
@@ -18,6 +16,7 @@ import eventRouter from "./routes/eventsRoutes.js";
 import notificationRouter from "./routes/notificationRoutes.js";
 import offerRouter from "./routes/offerRoutes.js";
 import subscribedUserRouter from "./routes/subscribedUserRoutes.js";
+import serviceRouter from "./routes/serviceRoutes.js";
 
 dotenv.config();
 
@@ -43,8 +42,7 @@ app.use("/notification", notificationRouter);
 app.use("/offer", offerRouter);
 app.use("/rating", ratingRouter);
 app.use("/reservation", reservationRouter);
-app.use("/roo,/image", roomImagesRouter);
-app.use("/room", roomRouter);
+app.use("/service", serviceRouter);
 app.use("/rules", rulesRouter);
 app.use("/space/image", spaceImagesRouter);
 app.use("/space", spaceRouter);

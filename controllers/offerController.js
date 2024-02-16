@@ -1,14 +1,15 @@
 import mongoose from "mongoose";
 import Offer from "../models/offersModel.js";
 import Space from "../models/spaceModel.js";
-import Room from "../models/roomModel.js";
+import Service from "../models/serviceModel.js";
+import Notification from "../models/notificationModel.js";
 
 // Controller for adding a new offer
 export const addOffer = async (req, res) => {
   try {
-    const { percentage, type, roomId, startDate, endDate } = req.body;
+    const { percentage, type, serviceId, startDate, endDate } = req.body;
 
-    if (!percentage || !type || !roomId || !startDate || !endDate) {
+    if (!percentage || !type || !startDate || !endDate) {
       return res.status(400).json({ error: "All fields are required" });
     }
 
@@ -20,27 +21,30 @@ export const addOffer = async (req, res) => {
     }
 
     // Validate type
-    if (!["spaceOffer", "roomOffer"].includes(type)) {
+    if (!["spaceOffer", "serviceOffer"].includes(type)) {
       return res.status(400).json({ error: "Invalid offer type" });
-    }
-
-    // Validate roomId
-    if (!mongoose.isValidObjectId(roomId)) {
-      return res.status(400).json({ error: "Invalid room ID" });
     }
 
     let spaceId;
 
-    if (type === "roomOffer") {
-      // Find the room by ID and populate spaceId
-      const room = await Room.findById(roomId).populate("spaceId");
-
-      if (!room) {
-        return res.status(404).json({ error: "Room not found" });
+    if (type === "serviceOffer") {
+      if (!serviceId) {
+        return res.status(400).json({ error: "All fields are required" });
       }
 
-      // Get spaceId from the populated room
-      spaceId = room.spaceId;
+      // Validate serviceId
+      if (!mongoose.isValidObjectId(serviceId)) {
+        return res.status(400).json({ error: "Invalid service Id" });
+      }
+
+      const service = await Service.findById(serviceId).populate("spaceId");
+
+      if (!service) {
+        return res.status(404).json({ error: "service not found" });
+      }
+
+      // Get spaceId from the populated service
+      spaceId = service.spaceId;
 
       // Find the space by spaceId and get the name
       const space = await Space.findById(spaceId);
@@ -49,14 +53,38 @@ export const addOffer = async (req, res) => {
         return res.status(404).json({ error: "Space not found" });
       }
 
+      // Check for overlapping offers
+      const existingOffer = await Offer.findOne({
+        type: "serviceOffer",
+        serviceId: serviceId,
+        startDate: { $lte: endDate },
+        endDate: { $gte: startDate },
+      });
+
+      if (existingOffer) {
+        return res
+          .status(400)
+          .json({ error: "Service already has an offer during this period" });
+      }
+
       const newOffer = await Offer.create({
         percentage,
         type,
         spaceId,
-        roomId,
+        serviceId,
+        startDate,
+        endDate,
       });
 
-      return res.status(200).json(newOffer);
+      const notification = await Notification.create({
+        offerId: newOffer._id,
+        message: `Don't miss ${newOffer.percentage}% off on this service: ${service.name} in ${space.name} Space`,
+      });
+
+      return res.status(200).json({
+        offer: newOffer,
+        notification: notification,
+      });
     }
 
     if (type === "spaceOffer") {
@@ -74,9 +102,37 @@ export const addOffer = async (req, res) => {
         return res.status(404).json({ error: "Space not found" });
       }
 
-      const newOffer = await Offer.create({ percentage, type, spaceId });
+      // Check for overlapping offers
+      const existingOffer = await Offer.findOne({
+        type: "spaceOffer",
+        spaceId: spaceId,
+        startDate: { $lte: endDate },
+        endDate: { $gte: startDate },
+      });
 
-      return res.status(200).json(newOffer);
+      if (existingOffer) {
+        return res
+          .status(400)
+          .json({ error: "Space already has an offer during this period" });
+      }
+
+      const newOffer = await Offer.create({
+        percentage,
+        type,
+        spaceId,
+        startDate,
+        endDate,
+      });
+
+      const notification = await Notification.create({
+        offerId: newOffer._id,
+        message: `Don't miss ${newOffer.percentage}% off on all services in ${space.name} space`,
+      });
+
+      return res.status(200).json({
+        offer: newOffer,
+        notification: notification,
+      });
     }
   } catch (error) {
     console.error(error);
@@ -95,7 +151,7 @@ export const editOffer = async (req, res) => {
       return res.status(400).json({ error: "Invalid offer ID" });
     }
 
-    const { percentage, type, spaceId, roomId } = req.body;
+    const { percentage, startDate, endDate } = req.body;
 
     // Validate percentage
     if (percentage && (percentage < 0.1 || percentage > 100)) {
@@ -104,28 +160,12 @@ export const editOffer = async (req, res) => {
         .json({ error: "Percentage must be between 0.1 and 100" });
     }
 
-    // Validate type
-    if (type && !["spaceOffer", "roomOffer"].includes(type)) {
-      return res.status(400).json({ error: "Invalid offer type" });
-    }
-
-    // Validate spaceId and roomId based on type
-    if (type === "spaceOffer" && !spaceId) {
-      return res
-        .status(400)
-        .json({ error: "Space ID is required for space offer" });
-    }
-
-    if (type === "roomOffer" && !roomId) {
-      return res
-        .status(400)
-        .json({ error: "Room ID is required for room offer" });
-    }
-
     const updatedOffer = await Offer.findByIdAndUpdate(
       id,
       {
         percentage: percentage,
+        startDate: startDate,
+        endDate: endDate,
       },
       { new: true }
     );
@@ -170,7 +210,9 @@ export const deleteOffer = async (req, res) => {
 // Controller for getting all offers
 export const getAllOffers = async (req, res) => {
   try {
-    const offers = await Offer.find().sort({ createdAt: -1 });
+    const offers = await Offer.find()
+      .sort({ createdAt: -1 })
+      .populate("serviceId spaceId");
     return res.json(offers);
   } catch (error) {
     console.error(error);
@@ -196,6 +238,56 @@ export const getOneOffer = async (req, res) => {
     }
 
     return res.status(200).json(offer);
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json({ error: "Internal Server Error", msg: error.message });
+  }
+};
+
+// Controller for getting all offers by spaceId
+export const getAllOffersBySpace = async (req, res) => {
+  const { spaceId } = req.body;
+  try {
+    const offers = await Offer.find({ spaceId: spaceId })
+      .sort({
+        createdAt: -1,
+      })
+      .populate("spaceId serviceId");
+    return res.json(offers);
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json({ error: "Internal Server Error", msg: error.message });
+  }
+};
+
+// Controller for getting all valid offers by spaceId for today
+export const getValidOffersBySpace = async (req, res) => {
+  const { spaceId } = req.body;
+
+  try {
+    // Validate spaceId
+    if (!mongoose.isValidObjectId(spaceId)) {
+      return res.status(400).json({ error: "Invalid space ID" });
+    }
+
+    // Get today's date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Find all offers for the specified space that are valid for today
+    const validOffers = await Offer.find({
+      spaceId: spaceId,
+      startDate: { $lte: today },
+      endDate: { $gte: today },
+    })
+      .sort({ createdAt: -1 })
+      .populate("serviceId spaceId");
+
+    return res.json(validOffers);
   } catch (error) {
     console.error(error);
     return res

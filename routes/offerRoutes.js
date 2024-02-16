@@ -5,6 +5,8 @@ import {
   deleteOffer,
   getAllOffers,
   getOneOffer,
+  getAllOffersBySpace,
+  getValidOffersBySpace,
 } from "../controllers/offerController.js";
 
 const offerRouter = express.Router();
@@ -22,6 +24,12 @@ offerRouter.delete("/", deleteOffer);
 offerRouter.get("/", getAllOffers);
 
 // Route for getting one offer by ID
-offerRouter.get("/byId", getOneOffer);
+offerRouter.post("/byId", getOneOffer);
+
+// Route for getting one offer by ID
+offerRouter.post("/bySpace", getAllOffersBySpace);
+
+// Route for getting one offer by ID
+offerRouter.post("/valid", getValidOffersBySpace);
 
 export default offerRouter;
