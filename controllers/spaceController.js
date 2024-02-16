@@ -1,197 +1,57 @@
-import bcrypt from "bcrypt";
-import fs from "fs";
+import Service from "../models/serviceModel.js";
 import User from "../models/userModel.js";
 import Space from "../models/spaceModel.js";
-import Room from "../models/roomModel.js";
 import mongoose from "mongoose";
 
 export const addSpace = async (req, res) => {
   try {
-    const { registered } = req.body;
-    let newSpace;
+    const {
+      name,
+      cityId,
+      address,
+      longitude,
+      latitude,
+      description,
+      categoryId,
+      email,
+    } = req.body;
 
-    // return res.json(req.body);
-    if (registered === "0") {
-      // console.log("hello");
-      const {
-        name,
-        email,
-        password,
-        firstName,
-        lastName,
-        cityId,
-        address,
-        longitude,
-        latitude,
-        description,
-        categoryId,
-        phoneNumber,
-      } = req.body;
-
-      // Check if all required fields are provided
-      if (
-        !name ||
-        !email ||
-        !password ||
-        !firstName ||
-        !lastName ||
-        !cityId ||
-        !address ||
-        !longitude ||
-        !latitude ||
-        !description ||
-        !categoryId ||
-        !phoneNumber
-      ) {
-        return res.status(400).json("All fields are required");
-      }
-
-      // Check if image is uploaded
-      if (!req.file) {
-        return res.status(400).json({ error: "Upload an image" });
-      }
-
-      // Check if user with provided email already exists
-      const existingUser = await User.findOne({ email: email });
-
-      if (existingUser) {
-        const oldSpace = await Space.findOne({ name: name });
-
-        if (oldSpace) {
-          const imagePath = `public/images/${req.file?.filename}`;
-          fs.unlinkSync(imagePath);
-          return res.status(400).json({
-            error: "This space already exist, please choose another name",
-          });
-        }
-
-        if (existingUser && existingUser.role === "User") {
-          // User exists, create space with 'Pending' status
-          newSpace = await Space.create({
-            status: "Pending",
-            name: name,
-            userId: existingUser._id,
-            cityId: cityId,
-            address: address,
-            longitude: longitude,
-            latitude: latitude,
-            description: description,
-            categoryId: categoryId,
-          });
-        } else if (existingUser && existingUser.role === "Manager") {
-          // Manager exists, create space with 'Pending' status
-          newSpace = await Space.create({
-            status: "Accepted",
-            name: name,
-            userId: existingUser._id,
-            cityId: cityId,
-            address: address,
-            longitude: longitude,
-            latitude: latitude,
-            description: description,
-            categoryId: categoryId,
-          });
-        }
-
-        return res.status(200).json(newSpace);
-      }
-
-      // User does not exist, create new user and space with 'Pending' status
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const newUser = await User.create({
-        firstName: firstName,
-        lastName: lastName,
-        email: email,
-        password: hashedPassword,
-        role: "User",
-        image: req.file.filename,
-        phoneNumber: phoneNumber,
-      });
-
-      if (!newUser) {
-        const imagePath = `public/images/${req.file?.filename}`;
-        fs.unlinkSync(imagePath);
-        return res.status(400).json("Error happened, user not created");
-      }
-
-      newSpace = await Space.create({
-        status: "Pending",
-        name: name,
-        userId: newUser._id,
-        cityId: cityId,
-        address: address,
-        longitude: longitude,
-        latitude: latitude,
-        description: description,
-        categoryId: categoryId,
-      });
-
-      if (!newSpace) {
-        const imagePath = `public/images/${req.file?.filename}`;
-        fs.unlinkSync(imagePath);
-        return res.status(400).json("Error happened, space not created");
-      }
-
-      return res.status(200).json(newSpace);
-    } else if (registered === "1") {
-      const {
-        name,
-        cityId,
-        address,
-        longitude,
-        latitude,
-        description,
-        categoryId,
-        email,
-      } = req.body;
-
-      // Check if all required fields are provided
-      if (
-        !name ||
-        !cityId ||
-        !address ||
-        !longitude ||
-        !latitude ||
-        !description ||
-        !categoryId
-      ) {
-        const imagePath = `public/images/${req.file?.filename}`;
-        fs.unlinkSync(imagePath);
-        return res.status(400).json("All fields are required");
-      }
-
-      // Check if user with provided email exists
-      const user = await User.findOne({ email: email });
-
-      if (!user) {
-        const imagePath = `public/images/${req.file?.filename}`;
-        fs.unlinkSync(imagePath);
-        return res.status(404).json("User not found");
-      }
-
-      // Create space with appropriate status based on user role
-      newSpace = await Space.create({
-        status: user.role === "User" ? "Pending" : "Accepted",
-        name: name,
-        cityId: cityId,
-        address: address,
-        longitude: longitude,
-        latitude: latitude,
-        description: description,
-        categoryId: categoryId,
-        userId: user._id,
-      });
-
-      return res.status(200).json(newSpace);
-    } else {
-      const imagePath = `public/images/${req.file?.filename}`;
-      fs.unlinkSync(imagePath);
-      return res.status(400).json("Invalid value for 'registered'");
+    // Check if all required fields are provided
+    if (
+      !name ||
+      !cityId ||
+      !address ||
+      !longitude ||
+      !latitude ||
+      !description ||
+      !categoryId
+    ) {
+      return res.status(400).json("All fields are required");
     }
+
+    // Check if user with provided email exists
+    const user = await User.findOne({ email: email });
+
+    if (!user) {
+      return res.status(404).json("User not found");
+    }
+
+    // Create space with appropriate status based on user role
+    const newSpace = await Space.create({
+      status: "Pending",
+      name: name,
+      cityId: cityId,
+      address: address,
+      longitude: longitude,
+      latitude: latitude,
+      description: description,
+      categoryId: categoryId,
+      userId: user._id,
+    });
+
+    return res.status(200).json(newSpace);
   } catch (error) {
     console.error(error);
-    const imagePath = `public/images/${req.file.filename}`;
-    fs.unlinkSync(imagePath);
     return res
       .status(500)
       .json({ error: "Internal Server Error", msg: error.message });
@@ -231,18 +91,10 @@ export const SpaceStatus = async (req, res) => {
         { new: true }
       );
 
-      // Find all pending spaces for the user and update their status to Accepted
-      const pendingSpaces = await Space.find({
-        userId: updatedSpace.userId,
-      });
-      for (const space of pendingSpaces) {
-        await Space.findByIdAndUpdate(space._id, { status: status });
-      }
-
       return res.status(200).json({
         status: "Accepted",
         user: updatedUser,
-        space: [updatedSpace, ...pendingSpaces],
+        space: updatedSpace,
       });
     }
 
@@ -253,17 +105,9 @@ export const SpaceStatus = async (req, res) => {
         { new: true }
       );
 
-      // Find all spaces for the user and update their status to Canceled
-      const canceledSpaces = await Space.find({
-        userId: updatedSpace.userId,
-      });
-      for (const space of canceledSpaces) {
-        await Space.findByIdAndUpdate(space._id, { status: "Canceled" });
-      }
-
       return res
         .status(200)
-        .json({ status: "Canceled", user: updatedUser, space: canceledSpaces });
+        .json({ status: "Canceled", user: updatedUser, space: updatedSpace });
     }
 
     if (status === "Pending") {
@@ -273,17 +117,9 @@ export const SpaceStatus = async (req, res) => {
         { new: true }
       );
 
-      // Find all spaces for the user and update their status to Canceled
-      const pendingSpaces = await Space.find({
-        userId: updatedSpace.userId,
-      });
-      for (const space of pendingSpaces) {
-        await Space.findByIdAndUpdate(space._id, { status: "Pending" });
-      }
-
       return res
         .status(200)
-        .json({ status: "Canceled", user: updatedUser, space: pendingSpaces });
+        .json({ status: "Pending", user: updatedUser, space: updatedSpace });
     }
   } catch (error) {
     return res
@@ -342,12 +178,12 @@ export const deleteSpace = async (req, res) => {
       return res.status(404).json({ error: "Space not found" });
     }
 
-    // Find all rooms associated with the space
-    const roomsToDelete = await Room.find({ spaceId: id });
+    // Find all services associated with the space
+    const servicesToDelete = await Service.find({ spaceId: id });
 
-    // Delete all rooms associated with the space
-    for (const room of roomsToDelete) {
-      await Room.findByIdAndDelete(room._id);
+    // Delete all services associated with the space
+    for (const service of servicesToDelete) {
+      await Service.findByIdAndDelete(service._id);
     }
 
     // Delete the space itself
@@ -359,7 +195,7 @@ export const deleteSpace = async (req, res) => {
 
     return res
       .status(200)
-      .json({ message: "Space and associated rooms deleted successfully" });
+      .json({ message: "Space and associated services deleted successfully" });
   } catch (error) {
     console.error(error);
     return res
@@ -373,9 +209,11 @@ export const getAllSpaces = async (req, res) => {
   try {
     const { status } = req.body;
     if (!status) {
-      const spaces = await Space.find().sort({
-        createdAt: -1,
-      });
+      const spaces = await Space.find()
+        .sort({
+          createdAt: -1,
+        })
+        .populate("amenities");
       return res.json(spaces);
     }
     const spaces = await Space.find({ status: status }).sort({
