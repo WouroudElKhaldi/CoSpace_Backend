@@ -1,6 +1,6 @@
 import User from "../models/userModel.js";
 import Space from "../models/spaceModel.js";
-import Room from "../models/roomModel.js";
+import Room from "../models/serviceModel.js";
 import bcrypt from "bcrypt";
 import fs from "fs";
 import mongoose from "mongoose";
