@@ -7,17 +7,10 @@ import mongoose from "mongoose";
 
 // Controller for adding a new user ()
 export const addUser = async (req, res) => {
-  const { role, firstName, lastName, email, password, phoneNumber } = req.body;
+  const { role, fullName, email, password, phoneNumber } = req.body;
 
   try {
-    if (
-      !firstName ||
-      !lastName ||
-      !email ||
-      !password ||
-      !phoneNumber ||
-      !role
-    ) {
+    if (!fullName || !email || !password || !phoneNumber || !role) {
       const imagePath = `public/images/${req.file.filename}`;
       fs.unlinkSync(imagePath);
       return res.status(400).json({ error: "All fields are required" });
@@ -41,8 +34,7 @@ export const addUser = async (req, res) => {
     const image = req.file.filename;
 
     const newUser = await User.create({
-      firstName,
-      lastName,
+      fullName,
       email,
       password: hashedPassword,
       role: role,
@@ -67,15 +59,8 @@ export const addUser = async (req, res) => {
 // Controller for editing a user
 export const editUser = async (req, res) => {
   const id = req.body.id;
-  const {
-    firstName,
-    lastName,
-    email,
-    password,
-    checkPassword,
-    role,
-    phoneNumber,
-  } = req.body;
+  const { fullName, email, password, checkPassword, role, phoneNumber } =
+    req.body;
 
   try {
     if (!mongoose.isValidObjectId(id)) {
@@ -112,8 +97,7 @@ export const editUser = async (req, res) => {
     let updatedUserData = {};
     if (password) {
       updatedUserData = {
-        firstName: firstName || existingUser.firstName,
-        lastName: lastName || existingUser.lastName,
+        fullName: fullName || existingUser.fullName,
         email: email || existingUser.email,
         password: await bcrypt.hash(password, 10),
         role: role || existingUser.role,
@@ -122,8 +106,7 @@ export const editUser = async (req, res) => {
       };
     } else {
       updatedUserData = {
-        firstName: firstName || existingUser.firstName,
-        lastName: lastName || existingUser.lastName,
+        fullName: fullName || existingUser.fullName,
         email: email || existingUser.email,
         role: role || existingUser.role,
         image: updatedImage,

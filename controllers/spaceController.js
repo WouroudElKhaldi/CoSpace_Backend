@@ -1,6 +1,7 @@
 import Service from "../models/serviceModel.js";
 import User from "../models/userModel.js";
 import Space from "../models/spaceModel.js";
+import Rating from "../models/ratingModel.js";
 import mongoose from "mongoose";
 
 export const addSpace = async (req, res) => {
@@ -333,5 +334,41 @@ export const getSpacesByUserId = async (req, res) => {
     return res
       .status(500)
       .json({ error: "Internal Server Error", msg: error.message });
+  }
+};
+
+export const getTopRatedSpaces = async (req, res) => {
+  try {
+    const ratings = await Rating.aggregate([
+      {
+        $group: {
+          _id: "$spaceId",
+          totalRating: { $sum: "$rate" },
+          count: { $sum: 1 },
+          ratings: { $push: "$$ROOT" },
+        },
+      },
+      {
+        $sort: { totalRating: -1 },
+      },
+      {
+        $limit: 3,
+      },
+    ]);
+
+    const topSpaces = [];
+
+    for (let i = 0; i < ratings.length; i++) {
+      const space = await Space.findById(ratings[i]._id);
+      topSpaces.push({
+        space: space,
+        totalRating: ratings[i].totalRating,
+        count: ratings[i].count,
+      });
+    }
+
+    res.status(200).json(topSpaces);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

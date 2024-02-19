@@ -9,6 +9,7 @@ import {
   addAmenitiesToSpace,
   deleteAmenitiesFromSpace,
   getSpacesByUserId,
+  getTopRatedSpaces,
 } from "../controllers/spaceController.js";
 import upload from "../middlewares/multer.js";
 
@@ -31,6 +32,9 @@ spaceRouter.post("/", getAllSpaces);
 
 // Route for getting one space by ID
 spaceRouter.post("/byId", getOneSpace);
+
+// Route for getting otop 3 rated spaces
+spaceRouter.get("/byRate", getTopRatedSpaces);
 
 // Route for getting one space by user ID
 spaceRouter.post("/userId", getSpacesByUserId);
