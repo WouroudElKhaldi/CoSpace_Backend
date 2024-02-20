@@ -31,6 +31,21 @@ const userSchema = new mongoose.Schema(
     },
     phoneNumber: { type: Number },
     image: { type: String },
+    status: {
+      type: String,
+      enum: ["Pending", "Verified"],
+      default: "Pending",
+    },
+    verificationCode: {
+      type: String,
+      required: true,
+      minlength: 6,
+    },
+    deleteCode: {
+      type: String,
+      required: true,
+      minlength: 6,
+    },
   },
   {
     timestamps: true,

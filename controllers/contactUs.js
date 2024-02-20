@@ -1,4 +1,4 @@
-import mailer from "../utils/mail.js";
+import { ContactMailer } from "../utils/mail.js";
 
 export const contact = async (req, res) => {
   const {
@@ -13,7 +13,7 @@ export const contact = async (req, res) => {
   } = req.body;
 
   try {
-    const response = await mailer({
+    const response = await ContactMailer({
       message,
       fullName,
       email,

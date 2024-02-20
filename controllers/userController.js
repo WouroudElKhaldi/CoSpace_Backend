@@ -139,8 +139,10 @@ export const deleteUser = async (req, res) => {
     }
     const user = await User.findOne({ _id: id });
 
-    const imagePath = `public/images/${user.image}`;
-    fs.unlinkSync(imagePath);
+    if (user.image) {
+      const imagePath = `public/images/${user.image}`;
+      fs.unlinkSync(imagePath);
+    }
 
     const deletedUser = await User.findByIdAndDelete(id);
 

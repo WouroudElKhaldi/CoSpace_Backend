@@ -11,6 +11,7 @@ import {
   SignUp,
   loggedInUser,
   logOut,
+  verifyAccount,
 } from "../controllers/authController.js";
 import upload from "../middlewares/multer.js";
 import { authenticate } from "../middlewares/auth.js";
@@ -43,5 +44,8 @@ userRouter.get("/logged-in-user", authenticate, loggedInUser);
 
 // Route for user logout
 userRouter.post("/logout", logOut);
+
+// Route for user verification
+userRouter.post("/verify", verifyAccount);
 
 export default userRouter;

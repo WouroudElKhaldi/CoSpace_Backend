@@ -2,7 +2,6 @@ import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 
 dotenv.config();
-
 const transporter = nodemailer.createTransport({
   service: "Gmail",
   host: "smtp.gmail.com",
@@ -14,7 +13,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const mailer = async ({
+export const ContactMailer = async ({
   message,
   fullName,
   email,
@@ -56,4 +55,62 @@ const mailer = async ({
   });
 };
 
-export default mailer;
+export const verifycationCodeMailer = async (user) => {
+  const info = await transporter.sendMail({
+    from: `wouroudelkhaldi@gmail.com`,
+    to: `${user.email}`,
+    subject: "Account Verification for CoSpace Website",
+    html: `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            color: #333;
+          }
+          p {
+            margin: 0 0 1rem 0;
+          }
+          strong {
+            font-weight: bold;
+          }
+          em {
+            font-style: italic;
+            color: 'red';
+          }
+        </style>
+      </head>
+      <body>
+        <div>
+          <p>Hello ${user.fullName},</p>
+          <p>We hope this email finds you well</p>
+          <p>
+            An account was created with your email: ${user.email} on CoSpace. If it was
+            you, please verify your account by filling the code in the verification
+            page by the code below:
+          </p>
+          <p>
+            <strong>Verification code : <em>${user.verificationCode}</em></strong>
+          </p>
+          <p>
+            If it wasn't you, please fill this code in the verification page to delete
+            the account request directly
+          </p>
+          <p>
+            <strong>Delete code : <em>${user.deleteCode}</em></strong>
+          </p>
+          <p>
+            Thank you for registering on our webiste, hope you enjoy browsing
+          </p>
+        </div>
+      </body>
+    </html>
+    `,
+  });
+  console.log("email sent successfuly");
+};
