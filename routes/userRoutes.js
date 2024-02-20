@@ -18,10 +18,10 @@ import { authenticate } from "../middlewares/auth.js";
 const userRouter = express.Router();
 
 // Route for adding a new user
-userRouter.post("/", upload.single("image"), addUser);
+userRouter.post("/", addUser);
 
 // Route for editing a user
-userRouter.patch("/", upload.single("image"), editUser);
+userRouter.patch("/", editUser);
 
 // Route for deleting a user
 userRouter.delete("/", deleteUser);
@@ -36,12 +36,12 @@ userRouter.post("/byId", getOneUser);
 userRouter.post("/login", logIn);
 
 // Route for user signup
-userRouter.post("/signup", upload.single("image"), SignUp);
+userRouter.post("/signup", SignUp);
 
 // Route for getting logged in user details
 userRouter.get("/logged-in-user", authenticate, loggedInUser);
 
 // Route for user logout
-userRouter.get("/logout", logOut);
+userRouter.post("/logout", logOut);
 
 export default userRouter;

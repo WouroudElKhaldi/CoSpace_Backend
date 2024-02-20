@@ -20,7 +20,7 @@ spaceImageRouter.patch("/", upload.single("image"), editSpaceImage);
 spaceImageRouter.delete("/", deleteSpaceImage);
 
 // Route for getting all space images
-spaceImageRouter.get("/", getAllSpaceImages);
+spaceImageRouter.post("/bySpace", getAllSpaceImages);
 
 // Route for getting one space image by ID
 spaceImageRouter.post("/byId", getOneSpaceImage);

@@ -110,8 +110,11 @@ export const deleteSpaceImage = async (req, res) => {
 
 // Controller for getting all space images
 export const getAllSpaceImages = async (req, res) => {
+  const { spaceId } = req.body;
   try {
-    const spaceImages = await SpaceImages.find().sort({ createdAt: -1 });
+    const spaceImages = await SpaceImages.find({ spaceId: spaceId }).sort({
+      createdAt: -1,
+    });
     return res.json(spaceImages);
   } catch (error) {
     console.error(error);

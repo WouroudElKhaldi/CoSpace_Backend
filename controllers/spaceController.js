@@ -214,12 +214,16 @@ export const getAllSpaces = async (req, res) => {
         .sort({
           createdAt: -1,
         })
-        .populate("amenities");
+        .populate("categoryId cityId userId");
       return res.json(spaces);
     }
-    const spaces = await Space.find({ status: status }).sort({
-      createdAt: -1,
-    });
+    const spaces = await Space.find({ status: status })
+      .sort({
+        createdAt: -1,
+      })
+      .populate("categoryId cityId userId");
+
+    console.log(spaces);
     return res.json(spaces);
   } catch (error) {
     console.error(error);
@@ -352,7 +356,7 @@ export const getTopRatedSpaces = async (req, res) => {
         $sort: { totalRating: -1 },
       },
       {
-        $limit: 3,
+        $limit: 5,
       },
     ]);
 
@@ -370,5 +374,105 @@ export const getTopRatedSpaces = async (req, res) => {
     res.status(200).json(topSpaces);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+export const filterSpaces = async (req, res) => {
+  try {
+    const {
+      minPrice,
+      maxPrice,
+      amenities,
+      categories,
+      minRating,
+      maxRating,
+      city,
+    } = req.query;
+
+    const priceMatchStage = {
+      $lookup: {
+        from: "services",
+        localField: "_id",
+        foreignField: "spaceId",
+        as: "services",
+      },
+    };
+
+    const priceCondition = {
+      $match: {
+        "services.dailyPrice": {
+          $gte: parseFloat(minPrice),
+          $lte: parseFloat(maxPrice),
+        },
+      },
+    };
+
+    const amenitiesCondition = {
+      $match: {
+        amenities: {
+          $in: amenities
+            .split(",")
+            .map((amenity) => mongoose.Types.ObjectId(amenity)),
+        },
+      },
+    };
+
+    const categoryCondition = {
+      $match: {
+        categoryId: {
+          $in: categories
+            .split(",")
+            .map((category) => mongoose.Types.ObjectId(category)),
+        },
+      },
+    };
+
+    const ratingCondition = {
+      $lookup: {
+        from: "ratings",
+        localField: "_id",
+        foreignField: "spaceId",
+        as: "ratings",
+      },
+      $unwind: "$ratings",
+      $match: {
+        "ratings.rate": {
+          $gte: parseFloat(minRating),
+          $lte: parseFloat(maxRating),
+        },
+      },
+    };
+
+    const cityCondition = {
+      $match: {
+        cityId: mongoose.Types.ObjectId(city),
+      },
+    };
+
+    const aggregationPipeline = [
+      priceMatchStage,
+      priceCondition,
+      amenitiesCondition,
+      categoryCondition,
+      ratingCondition,
+      cityCondition,
+      {
+        $group: {
+          _id: "$services.spaceId",
+          space: {
+            $first: "$$ROOT",
+          },
+        },
+      },
+    ];
+
+    const filteredSpaces = await Space.aggregate(aggregationPipeline);
+
+    return res.json(filteredSpaces);
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json({ error: "Internal Server Error", msg: error.message });
   }
 };

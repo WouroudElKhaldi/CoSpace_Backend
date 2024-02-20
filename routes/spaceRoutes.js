@@ -33,7 +33,7 @@ spaceRouter.post("/", getAllSpaces);
 // Route for getting one space by ID
 spaceRouter.post("/byId", getOneSpace);
 
-// Route for getting otop 3 rated spaces
+// Route for getting otop 5 rated spaces
 spaceRouter.get("/byRate", getTopRatedSpaces);
 
 // Route for getting one space by user ID

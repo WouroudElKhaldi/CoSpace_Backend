@@ -17,6 +17,7 @@ import notificationRouter from "./routes/notificationRoutes.js";
 import offerRouter from "./routes/offerRoutes.js";
 import subscribedUserRouter from "./routes/subscribedUserRoutes.js";
 import serviceRouter from "./routes/serviceRoutes.js";
+import contactRouter from "./routes/conatctRoutes.js";
 
 dotenv.config();
 
@@ -48,6 +49,7 @@ app.use("/space/image", spaceImagesRouter);
 app.use("/space", spaceRouter);
 app.use("/subUser", subscribedUserRouter);
 app.use("/user", userRouter);
+app.use("/contact", contactRouter);
 
 app.listen(PORT, () => {
   connect();
