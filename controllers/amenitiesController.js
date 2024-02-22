@@ -4,11 +4,11 @@ import fs from "fs";
 
 // Controller for adding a new amenity
 export const addAmenity = async (req, res) => {
-  const { name } = req.body;
+  const { name, category } = req.body;
 
   try {
-    if (!name) {
-      return res.status(400).json({ error: "Name is required" });
+    if (!name || !category) {
+      return res.status(400).json({ error: "Name & category is required" });
     }
 
     if (!req.file) {
@@ -20,6 +20,7 @@ export const addAmenity = async (req, res) => {
     const newAmenity = await Amenities.create({
       name,
       image,
+      category,
     });
 
     if (!newAmenity) {
@@ -40,7 +41,7 @@ export const addAmenity = async (req, res) => {
 // Controller for editing an amenity
 export const editAmenity = async (req, res) => {
   const id = req.body.id;
-  const { name } = req.body;
+  const { name, category } = req.body;
   const image = req.file.filename;
 
   try {
@@ -50,7 +51,7 @@ export const editAmenity = async (req, res) => {
 
     const updatedAmenity = await Amenities.findByIdAndUpdate(
       id,
-      { name, image },
+      { name, image, category },
       { new: true }
     );
 
@@ -103,7 +104,7 @@ export const deleteAmenity = async (req, res) => {
 // Controller for getting all amenities
 export const getAllAmenities = async (req, res) => {
   try {
-    const amenities = await Amenities.find().sort({ createdAt: -1 });
+    const amenities = await Amenities.find().sort({ createdAt: 1 });
     return res.json(amenities);
   } catch (error) {
     console.error(error);

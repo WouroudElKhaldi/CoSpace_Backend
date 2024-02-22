@@ -78,10 +78,17 @@ export const verifycationCodeMailer = async (user) => {
           }
           strong {
             font-weight: bold;
+            color : '#4d6188';
           }
           em {
             font-style: italic;
             color: 'red';
+          }
+          a{ 
+            width: '150px' ;
+            height: '50px' ;
+            background-color: '#4d6188' ;
+            color : 'white' ;
           }
         </style>
       </head>
@@ -90,19 +97,23 @@ export const verifycationCodeMailer = async (user) => {
           <p>Hello ${user.fullName},</p>
           <p>We hope this email finds you well</p>
           <p>
-            An account was created with your email: ${user.email} on CoSpace. If it was
-            you, please verify your account by filling the code in the verification
-            page by the code below:
+            An account was created with your email: ${user.email} on CoSpace.
+          </p>
+          <p>
+            If it was you, please verify your account by filling the code in the verification page by the code below:
           </p>
           <p>
             <strong>Verification code : <em>${user.verificationCode}</em></strong>
           </p>
           <p>
-            If it wasn't you, please fill this code in the verification page to delete
-            the account request directly
+            If it wasn't you, please fill this code in the verification page to delete the account request directly
           </p>
           <p>
             <strong>Delete code : <em>${user.deleteCode}</em></strong>
+          </p>
+          <p>
+            You can access the verification page via this button : 
+            <a href:"http://localhost:3000/verify">Verify Account</a>
           </p>
           <p>
             Thank you for registering on our webiste, hope you enjoy browsing

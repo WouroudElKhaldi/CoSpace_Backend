@@ -3,6 +3,7 @@ import User from "../models/userModel.js";
 import Space from "../models/spaceModel.js";
 import Rating from "../models/ratingModel.js";
 import mongoose from "mongoose";
+import City from "../models/cityModel.js";
 
 export const addSpace = async (req, res) => {
   try {
@@ -377,6 +378,44 @@ export const getTopRatedSpaces = async (req, res) => {
   }
 };
 
+// Controller function to search for a space by name or city
+export const searchSpace = async (req, res) => {
+  try {
+    const { name, cityName } = req.body;
+
+    // Define regex pattern for case-insensitive search
+    const regexName = new RegExp(name, "i");
+    const regexCityName = new RegExp(cityName, "i");
+
+    // If name is provided in the request body, search by name
+    if (name) {
+      const spacesByName = await Space.find({ name: { $regex: regexName } });
+      return res.status(200).json(spacesByName);
+    }
+
+    // If cityName is provided in the request body, search by city name
+    if (cityName) {
+      // Find the city by its name
+      const city = await City.findOne({ city: { $regex: regexCityName } });
+      if (!city) {
+        return res.status(404).json({ message: "City not found" });
+      }
+
+      // Find spaces in the found city
+      const spacesByCity = await Space.find({ cityId: city._id });
+      return res.status(200).json(spacesByCity);
+    }
+
+    // If neither name nor cityName is provided in the request body
+    return res.status(400).json({
+      message: "Please provide either name or cityName in the request body",
+    });
+  } catch (error) {
+    console.error("Error searching for space:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 export const filterSpaces = async (req, res) => {
   try {
     const {
@@ -387,84 +426,94 @@ export const filterSpaces = async (req, res) => {
       minRating,
       maxRating,
       city,
-    } = req.query;
+    } = req.body;
 
-    const priceMatchStage = {
-      $lookup: {
-        from: "services",
-        localField: "_id",
-        foreignField: "spaceId",
-        as: "services",
-      },
-    };
+    const aggregationPipeline = [];
 
-    const priceCondition = {
-      $match: {
-        "services.dailyPrice": {
-          $gte: parseFloat(minPrice),
-          $lte: parseFloat(maxPrice),
+    if (minPrice !== undefined && maxPrice !== undefined) {
+      var priceMatchStage = {
+        $lookup: {
+          from: "services",
+          localField: "_id",
+          foreignField: "spaceId",
+          as: "services",
         },
-      },
-    };
+      };
 
-    const amenitiesCondition = {
-      $match: {
-        amenities: {
-          $in: amenities
-            .split(",")
-            .map((amenity) => mongoose.Types.ObjectId(amenity)),
-        },
-      },
-    };
-
-    const categoryCondition = {
-      $match: {
-        categoryId: {
-          $in: categories
-            .split(",")
-            .map((category) => mongoose.Types.ObjectId(category)),
-        },
-      },
-    };
-
-    const ratingCondition = {
-      $lookup: {
-        from: "ratings",
-        localField: "_id",
-        foreignField: "spaceId",
-        as: "ratings",
-      },
-      $unwind: "$ratings",
-      $match: {
-        "ratings.rate": {
-          $gte: parseFloat(minRating),
-          $lte: parseFloat(maxRating),
-        },
-      },
-    };
-
-    const cityCondition = {
-      $match: {
-        cityId: mongoose.Types.ObjectId(city),
-      },
-    };
-
-    const aggregationPipeline = [
-      priceMatchStage,
-      priceCondition,
-      amenitiesCondition,
-      categoryCondition,
-      ratingCondition,
-      cityCondition,
-      {
-        $group: {
-          _id: "$services.spaceId",
-          space: {
-            $first: "$$ROOT",
+      aggregationPipeline.push({
+        $match: {
+          "services.dailyPrice": {
+            $gte: parseFloat(minPrice),
+            $lte: parseFloat(maxPrice),
           },
         },
+      });
+    }
+
+    if (amenities && amenities.length > 0) {
+      var amenitiesCondition = {
+        $match: {
+          amenities: {
+            $in: amenities.map(
+              (amenity) => new mongoose.Types.ObjectId(amenity)
+            ),
+          },
+        },
+      };
+      aggregationPipeline.push(amenitiesCondition);
+    }
+
+    if (categories && categories.length > 0) {
+      var categoryCondition = {
+        $match: {
+          categoryId: {
+            $in: categories.map(
+              (category) => new mongoose.Types.ObjectId(category)
+            ),
+          },
+        },
+      };
+      aggregationPipeline.push(categoryCondition);
+    }
+
+    if (minRating !== undefined && maxRating !== undefined) {
+      aggregationPipeline.push({
+        $lookup: {
+          from: "ratings",
+          localField: "_id",
+          foreignField: "spaceId",
+          as: "ratings",
+        },
+      });
+      aggregationPipeline.push({
+        $unwind: "$ratings",
+      });
+      aggregationPipeline.push({
+        $match: {
+          "ratings.rate": {
+            $gte: parseFloat(minRating),
+            $lte: parseFloat(maxRating),
+          },
+        },
+      });
+    }
+
+    if (city) {
+      aggregationPipeline.push({
+        $match: {
+          cityId: new mongoose.Types.ObjectId(city),
+        },
+      });
+    }
+
+    aggregationPipeline.push({
+      $group: {
+        _id: "$services.spaceId",
+        space: {
+          $first: "$$ROOT",
+        },
       },
-    ];
+    });
 
     const filteredSpaces = await Space.aggregate(aggregationPipeline);
 

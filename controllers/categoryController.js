@@ -101,7 +101,7 @@ export const deleteCategory = async (req, res) => {
 // Controller for getting all categories
 export const getAllCategories = async (req, res) => {
   try {
-    const categories = await Category.find().sort({ createdAt: -1 });
+    const categories = await Category.find().sort({ createdAt: 1 });
     return res.json(categories);
   } catch (error) {
     console.error(error);

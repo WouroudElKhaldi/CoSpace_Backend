@@ -34,7 +34,6 @@ const userSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ["Pending", "Verified"],
-      default: "Pending",
     },
     verificationCode: {
       type: String,

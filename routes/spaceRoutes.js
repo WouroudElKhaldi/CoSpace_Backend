@@ -10,6 +10,7 @@ import {
   deleteAmenitiesFromSpace,
   getSpacesByUserId,
   getTopRatedSpaces,
+  filterSpaces,
 } from "../controllers/spaceController.js";
 import upload from "../middlewares/multer.js";
 
@@ -44,5 +45,7 @@ spaceRouter.post("/addAmenity", addAmenitiesToSpace);
 
 // Route for deleting amenities from a space
 spaceRouter.post("/deleteAmenity", deleteAmenitiesFromSpace);
+
+spaceRouter.post("/filter", filterSpaces);
 
 export default spaceRouter;

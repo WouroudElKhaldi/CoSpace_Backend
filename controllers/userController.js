@@ -59,8 +59,15 @@ export const addUser = async (req, res) => {
 // Controller for editing a user
 export const editUser = async (req, res) => {
   const id = req.body.id;
-  const { fullName, email, password, checkPassword, role, phoneNumber } =
-    req.body;
+  const {
+    fullName,
+    email,
+    password,
+    checkPassword,
+    role,
+    phoneNumber,
+    status,
+  } = req.body;
 
   try {
     if (!mongoose.isValidObjectId(id)) {
@@ -103,6 +110,7 @@ export const editUser = async (req, res) => {
         role: role || existingUser.role,
         image: updatedImage,
         phoneNumber: phoneNumber || existingUser.phoneNumber,
+        status: status || existingUser.status,
       };
     } else {
       updatedUserData = {
@@ -111,6 +119,7 @@ export const editUser = async (req, res) => {
         role: role || existingUser.role,
         image: updatedImage,
         phoneNumber: phoneNumber || existingUser.phoneNumber,
+        status: status || existingUser.status,
       };
     }
 
