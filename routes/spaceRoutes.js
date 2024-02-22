@@ -11,6 +11,7 @@ import {
   getSpacesByUserId,
   getTopRatedSpaces,
   filterSpaces,
+  searchSpace,
 } from "../controllers/spaceController.js";
 import upload from "../middlewares/multer.js";
 
@@ -47,5 +48,7 @@ spaceRouter.post("/addAmenity", addAmenitiesToSpace);
 spaceRouter.post("/deleteAmenity", deleteAmenitiesFromSpace);
 
 spaceRouter.post("/filter", filterSpaces);
+
+spaceRouter.post("/search", searchSpace);
 
 export default spaceRouter;
