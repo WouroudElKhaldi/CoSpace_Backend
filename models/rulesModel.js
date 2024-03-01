@@ -15,6 +15,10 @@ const ruleSchema = new mongoose.Schema(
       ref: "Space",
       required: true,
     },
+    spaceName: {
+      type: String,
+      required: true,
+    },
   },
   {
     timestamps: true,

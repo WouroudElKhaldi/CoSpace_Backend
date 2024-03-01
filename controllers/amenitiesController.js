@@ -5,14 +5,13 @@ import fs from "fs";
 // Controller for adding a new amenity
 export const addAmenity = async (req, res) => {
   const { name, category } = req.body;
-
   try {
     if (!name || !category) {
-      return res.status(400).json({ error: "Name & category is required" });
+      return res.status(400).json("Name & category is required");
     }
 
     if (!req.file) {
-      return res.status(400).json({ erro: "Please upload an image" });
+      return res.status(400).json("Please upload an image");
     }
 
     const image = req.file.filename;
@@ -26,7 +25,7 @@ export const addAmenity = async (req, res) => {
     if (!newAmenity) {
       const imagePath = `public/images/${req.file.filename}`;
       fs.unlinkSync(imagePath);
-      return res.status(400).jon({ error: "Amenity not added" });
+      return res.status(400).jon("Amenity not added");
     }
 
     return res.status(200).json(newAmenity);
@@ -42,11 +41,14 @@ export const addAmenity = async (req, res) => {
 export const editAmenity = async (req, res) => {
   const id = req.body.id;
   const { name, category } = req.body;
-  const image = req.file.filename;
+  let image = "";
+  if (req.file) {
+    image = req.file.filename;
+  }
 
   try {
     if (!mongoose.isValidObjectId(id)) {
-      return res.status(400).json({ error: "Invalid amenity ID" });
+      return res.status(400).json("Invalid amenity ID");
     }
 
     const updatedAmenity = await Amenities.findByIdAndUpdate(
@@ -58,11 +60,11 @@ export const editAmenity = async (req, res) => {
     if (req.file && !updatedAmenity) {
       const imagePath = `public/images/${req.file.filename}`;
       fs.unlinkSync(imagePath);
-      return res.status(400).jon({ error: "Amenity not added" });
+      return res.status(400).jon("Amenity not updated");
     }
 
     if (!updatedAmenity) {
-      return res.status(404).json({ error: "Amenity not found" });
+      return res.status(404).json("Amenity not found");
     }
 
     return res.status(200).json(updatedAmenity);
@@ -80,7 +82,7 @@ export const deleteAmenity = async (req, res) => {
 
   try {
     if (!mongoose.isValidObjectId(id)) {
-      return res.status(400).json({ error: "Invalid amenity ID" });
+      return res.status(400).json("Invalid amenity ID");
     }
 
     const amenity = await Amenities.findOne({ _id: id });
@@ -91,7 +93,7 @@ export const deleteAmenity = async (req, res) => {
     const deletedAmenity = await Amenities.findByIdAndDelete(id);
 
     if (!deletedAmenity) {
-      return res.status(404).json({ error: "Amenity not found" });
+      return res.status(404).json("Amenity not found");
     }
 
     return res.status(200).json({ message: "Amenity deleted successfully" });
@@ -104,7 +106,7 @@ export const deleteAmenity = async (req, res) => {
 // Controller for getting all amenities
 export const getAllAmenities = async (req, res) => {
   try {
-    const amenities = await Amenities.find().sort({ createdAt: 1 });
+    const amenities = await Amenities.find().sort({ createdAt: -1 });
     return res.json(amenities);
   } catch (error) {
     console.error(error);
@@ -118,12 +120,12 @@ export const getOneAmenity = async (req, res) => {
 
   try {
     if (!mongoose.isValidObjectId(id)) {
-      return res.status(400).json({ error: "Invalid amenity ID" });
+      return res.status(400).json("Invalid amenity ID");
     }
     const amenity = await Amenities.findById(id);
 
     if (!amenity) {
-      return res.status(404).json({ error: "Amenity not found" });
+      return res.status(404).json("Amenity not found");
     }
 
     return res.status(200).json(amenity);

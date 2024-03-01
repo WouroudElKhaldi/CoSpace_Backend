@@ -37,12 +37,10 @@ const userSchema = new mongoose.Schema(
     },
     verificationCode: {
       type: String,
-      required: true,
       minlength: 6,
     },
     deleteCode: {
       type: String,
-      required: true,
       minlength: 6,
     },
   },

@@ -12,6 +12,7 @@ import {
   getTopRatedSpaces,
   filterSpaces,
   searchSpace,
+  getSpacesByCity,
 } from "../controllers/spaceController.js";
 import upload from "../middlewares/multer.js";
 
@@ -38,8 +39,10 @@ spaceRouter.post("/byId", getOneSpace);
 // Route for getting otop 5 rated spaces
 spaceRouter.get("/byRate", getTopRatedSpaces);
 
+spaceRouter.post("/byCity", getSpacesByCity);
+
 // Route for getting one space by user ID
-spaceRouter.post("/userId", getSpacesByUserId);
+spaceRouter.post("/byUser", getSpacesByUserId);
 
 // Route for adding amenities to a space
 spaceRouter.post("/addAmenity", addAmenitiesToSpace);

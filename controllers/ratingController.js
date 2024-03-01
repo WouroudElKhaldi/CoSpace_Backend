@@ -1,5 +1,7 @@
 import Rating from "../models/ratingModel.js";
 import mongoose from "mongoose";
+import User from "../models/userModel.js";
+import Space from "../models/spaceModel.js";
 
 // Controller for adding a new rating
 export const addRating = async (req, res) => {
@@ -9,12 +11,32 @@ export const addRating = async (req, res) => {
     if (!spaceId || !userId || !rate || !message) {
       return res.status(400).json({ error: "All fields are required" });
     }
+    if (!mongoose.isValidObjectId(userId)) {
+      return res.status(400).json("Invalid user ID");
+    }
+
+    if (!mongoose.isValidObjectId(spaceId)) {
+      return res.status(400).json("Invalid space ID");
+    }
+
+    const user = await User.findById(userId);
+    const space = await Space.findById(spaceId);
+
+    if (!user) {
+      return res.status(400).json("User Not Found");
+    }
+
+    if (!space) {
+      return res.status(400).json("Space Not Found");
+    }
 
     const newRating = await Rating.create({
       spaceId,
       userId,
       rate,
       message,
+      spaceName: space.name,
+      userName: user.fullName,
     });
 
     return res.status(200).json(newRating);
@@ -31,7 +53,7 @@ export const editRating = async (req, res) => {
 
   try {
     if (!mongoose.isValidObjectId(id)) {
-      return res.status(400).json({ error: "Invalid rating ID" });
+      return res.status(400).json("Invalid rating ID");
     }
 
     const updatedRating = await Rating.findByIdAndUpdate(
@@ -41,7 +63,7 @@ export const editRating = async (req, res) => {
     );
 
     if (!updatedRating) {
-      return res.status(404).json({ error: "Rating not found" });
+      return res.status(404).json("Rating not found");
     }
 
     return res.status(200).json(updatedRating);
@@ -144,5 +166,37 @@ export const getOneRating = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Internal Server Error", msg: error });
+  }
+};
+
+export const getRatingsByManagerId = async (req, res) => {
+  const { userId } = req.body;
+
+  try {
+    // Check if user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json("User not found");
+    }
+
+    // Get all spaces for user
+    const spaces = await Space.find({ users: userId });
+
+    if (!spaces) {
+      return res.status(404).json("No Spaces for this User");
+    }
+    // Get all ratings for spaces
+    const ratings = await Rating.find({
+      spaceId: { $in: spaces.map((space) => space._id) },
+    });
+
+    if (!ratings) {
+      return res.status(404).json("No Ratings for any space for this User");
+    }
+
+    // Return ratings
+    res.status(200).json(ratings);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

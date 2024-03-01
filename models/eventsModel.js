@@ -7,6 +7,10 @@ const EventSchema = new mongoose.Schema(
       ref: "Space",
       required: true,
     },
+    spaceName: {
+      type: String,
+      required: true,
+    },
     title: {
       type: String,
       required: true,

@@ -9,7 +9,7 @@ const transporter = nodemailer.createTransport({
   secure: true,
   auth: {
     user: `${process.env.email}`,
-    pass: `${process.env.email_password}`,
+    pass: `${process.env.app_password}`,
   },
 });
 
@@ -114,6 +114,77 @@ export const verifycationCodeMailer = async (user) => {
           <p>
             You can access the verification page via this button : 
             <a href:"http://localhost:3000/verify">Verify Account</a>
+          </p>
+          <p>
+            Thank you for registering on our webiste, hope you enjoy browsing
+          </p>
+        </div>
+      </body>
+    </html>
+    `,
+  });
+  console.log("email sent successfuly");
+};
+
+export const forgotPasswordMailer = async ({ user, code }) => {
+  const info = await transporter.sendMail({
+    from: `wouroudelkhaldi@gmail.com`,
+    to: `${user.email}`,
+    subject: "Account Recovery for CoSpace Website",
+    html: `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            color: #333;
+          }
+          p {
+            margin: 0 0 1rem 0;
+          }
+          strong {
+            font-weight: bold;
+            color : '#4d6188';
+          }
+          em {
+            font-style: italic;
+            color: 'red';
+          }
+          a{ 
+            width: 150px ;
+            height: 50px ;
+            background-color: #4d6188 ;
+            color : white ;
+          }
+          span{
+            color : red ;
+            font-size : 18px
+          }
+        </style>
+      </head>
+      <body>
+        <div>
+          <p>Hello ${user.fullName},</p>
+          <p>We hope this email finds you well</p>
+          <p>
+            You have sent a request to reset your password
+          </p>
+          <p>
+            Please Click on the link below to reset your password by filling the form by this code
+          </p>
+          <p>
+            <strong>Reseting password code : <em>${code}</em></strong>
+          </p>
+          <p>
+           <span><strong>Note: </strong></span> this code will expire after 1 hour, so if you will not be able to reset your password after 1 hour from recieving the code.
+          <p>
+            You can access the reset page via this button : 
+            <a href:"http://localhost:3000/forgot-your-password">Reset Paswword</a>
           </p>
           <p>
             Thank you for registering on our webiste, hope you enjoy browsing

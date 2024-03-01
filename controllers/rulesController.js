@@ -1,34 +1,46 @@
 import fs from "fs";
 import mongoose from "mongoose";
 import Rule from "../models/rulesModel.js";
+import Space from "../models/spaceModel.js";
 
 // Controller for adding a new Rule
 export const addRule = async (req, res) => {
   const { name, spaceId } = req.body;
   try {
-    if (!mongoose.isValidObjectId(spaceId)) {
-      return res.status(400).json({ error: "Invalid Space ID" });
+    if (!name || !spaceId) {
+      const imagePath = `public/images/${req.file.filename}`;
+      fs.unlinkSync(imagePath);
+      return res.status(400).json("All fields are required");
     }
 
-    if (!name || !spaceId) {
-      return res.status(400).json({ error: "All fields are required" });
+    if (!mongoose.isValidObjectId(spaceId)) {
+      const imagePath = `public/images/${req.file.filename}`;
+      fs.unlinkSync(imagePath);
+      return res.status(400).json("Invalid Space ID");
+    }
+
+    const space = await Space.findById(spaceId);
+
+    if (!space) {
+      const imagePath = `public/images/${req.file.filename}`;
+      fs.unlinkSync(imagePath);
+      return res.status(400).json("Space Not Found");
     }
 
     if (!req.file) {
-      return res.status(400).json({ error: "Upload an image" });
+      return res.status(400).json("Pleaase Upload an image");
     }
 
     const image = req.file ? req.file.filename : null;
-
     const newRule = await Rule.create({
       name,
       image,
       spaceId,
+      spaceName: space.name,
     });
 
     if (!newRule) {
       if (image) {
-        // If an image was uploaded but failed to create the rule, delete the image
         const imagePath = `public/images/${req.file.filename}`;
         fs.unlinkSync(imagePath);
       }
@@ -53,7 +65,9 @@ export const editRule = async (req, res) => {
 
   try {
     if (!mongoose.isValidObjectId(id)) {
-      return res.status(400).json({ error: "Invalid Rule ID" });
+      var image = req.file.filename;
+      const imagePath = `public/images/${ruleToUpdate.image}`;
+      return res.status(400).json("Invalid Rule ID");
     }
 
     const ruleToUpdate = await Rule.findById(id);

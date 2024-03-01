@@ -16,6 +16,8 @@ export const addSpace = async (req, res) => {
       description,
       categoryId,
       email,
+      status,
+      admin,
     } = req.body;
 
     // Check if all required fields are provided
@@ -40,7 +42,7 @@ export const addSpace = async (req, res) => {
 
     // Create space with appropriate status based on user role
     const newSpace = await Space.create({
-      status: "Pending",
+      status: admin === true ? status : "Pending",
       name: name,
       cityId: cityId,
       address: address,
@@ -224,7 +226,6 @@ export const getAllSpaces = async (req, res) => {
       })
       .populate("categoryId cityId userId");
 
-    console.log(spaces);
     return res.json(spaces);
   } catch (error) {
     console.error(error);
@@ -324,13 +325,13 @@ export const getSpacesByUserId = async (req, res) => {
     const { userId } = req.body;
 
     if (!mongoose.isValidObjectId(userId)) {
-      return res.status(400).json({ error: "Invalid user ID" });
+      return res.status(400).json("Invalid user ID");
     }
 
     const spaces = await Space.find({ userId: userId }).sort({ createdAt: -1 });
 
     if (!spaces || spaces.length === 0) {
-      return res.status(404).json({ error: "No spaces found for this user" });
+      return res.status(404).json("No spaces found for this user");
     }
 
     return res.status(200).json(spaces);
@@ -381,143 +382,49 @@ export const getTopRatedSpaces = async (req, res) => {
 // Controller function to search for a space by name or city
 export const searchSpace = async (req, res) => {
   try {
-    const { name, cityName } = req.body;
+    const { data } = req.body;
 
-    // Define regex pattern for case-insensitive search
-    const regexName = new RegExp(name, "i");
-    const regexCityName = new RegExp(cityName, "i");
+    const regexData = new RegExp(data, "i");
 
-    // If name is provided in the request body, search by name
-    if (name) {
-      const spacesByName = await Space.find({ name: { $regex: regexName } });
-      return res.status(200).json(spacesByName);
-    }
-
-    // If cityName is provided in the request body, search by city name
-    if (cityName) {
-      // Find the city by its name
-      const city = await City.findOne({ city: { $regex: regexCityName } });
-      if (!city) {
-        return res.status(404).json({ message: "City not found" });
-      }
-
-      // Find spaces in the found city
-      const spacesByCity = await Space.find({ cityId: city._id });
-      return res.status(200).json(spacesByCity);
-    }
-
-    // If neither name nor cityName is provided in the request body
-    return res.status(400).json({
-      message: "Please provide either name or cityName in the request body",
+    const city = await City.findOne({
+      city: { $regex: regexData },
     });
+
+    const spacesByCity = city ? await Space.find({ cityId: city._id }) : [];
+
+    // Find spaces by name
+    const spacesByName = await Space.find({
+      name: { $regex: regexData },
+      status: "Accepted",
+    });
+
+    // Combine the results
+    const spaces = [...spacesByCity, ...spacesByName];
+
+    return res.status(200).json(spaces);
   } catch (error) {
     console.error("Error searching for space:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
 
-export const filterSpaces = async (req, res) => {
+export const getSpacesByCity = async (req, res) => {
+  const cityName = req.body.cityName;
+
   try {
-    const {
-      minPrice,
-      maxPrice,
-      amenities,
-      categories,
-      minRating,
-      maxRating,
-      city,
-    } = req.body;
-
-    const aggregationPipeline = [];
-
-    if (minPrice !== undefined && maxPrice !== undefined) {
-      var priceMatchStage = {
-        $lookup: {
-          from: "services",
-          localField: "_id",
-          foreignField: "spaceId",
-          as: "services",
-        },
-      };
-
-      aggregationPipeline.push({
-        $match: {
-          "services.dailyPrice": {
-            $gte: parseFloat(minPrice),
-            $lte: parseFloat(maxPrice),
-          },
-        },
-      });
-    }
-
-    if (amenities && amenities.length > 0) {
-      var amenitiesCondition = {
-        $match: {
-          amenities: {
-            $in: amenities.map(
-              (amenity) => new mongoose.Types.ObjectId(amenity)
-            ),
-          },
-        },
-      };
-      aggregationPipeline.push(amenitiesCondition);
-    }
-
-    if (categories && categories.length > 0) {
-      var categoryCondition = {
-        $match: {
-          categoryId: {
-            $in: categories.map(
-              (category) => new mongoose.Types.ObjectId(category)
-            ),
-          },
-        },
-      };
-      aggregationPipeline.push(categoryCondition);
-    }
-
-    if (minRating !== undefined && maxRating !== undefined) {
-      aggregationPipeline.push({
-        $lookup: {
-          from: "ratings",
-          localField: "_id",
-          foreignField: "spaceId",
-          as: "ratings",
-        },
-      });
-      aggregationPipeline.push({
-        $unwind: "$ratings",
-      });
-      aggregationPipeline.push({
-        $match: {
-          "ratings.rate": {
-            $gte: parseFloat(minRating),
-            $lte: parseFloat(maxRating),
-          },
-        },
-      });
-    }
-
-    if (city) {
-      aggregationPipeline.push({
-        $match: {
-          cityId: new mongoose.Types.ObjectId(city),
-        },
-      });
-    }
-
-    aggregationPipeline.push({
-      $group: {
-        _id: "$services.spaceId",
-        space: {
-          $first: "$$ROOT",
-        },
-      },
+    const spaces = await Space.find({
+      "cityId.city": cityName,
     });
 
-    const filteredSpaces = await Space.aggregate(aggregationPipeline);
+    res.status(200).json(spaces);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
-    return res.json(filteredSpaces);
+export const filterSpaces = async (req, res) => {
+  try {
+    const { minPrice, maxPrice, amenities, categories } = req.body;
   } catch (error) {
     console.error(error);
     return res

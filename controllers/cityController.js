@@ -7,7 +7,13 @@ export const addCity = async (req, res) => {
 
   try {
     if (!city) {
-      return res.status(400).json({ error: "City name is required" });
+      return res.status(400).json("City name is required");
+    }
+
+    const existingCity = await City.findOne({ city: city });
+
+    if (existingCity) {
+      return res.status(404).json("City Already Exists");
     }
 
     const newCity = await City.create({
@@ -28,7 +34,13 @@ export const editCity = async (req, res) => {
 
   try {
     if (!mongoose.isValidObjectId(id)) {
-      return res.status(400).json({ error: "Invalid city ID" });
+      return res.status(400).json("Invalid city ID");
+    }
+
+    const existingCity = await City.findOne({ city: city });
+
+    if (existingCity) {
+      return res.status(404).json("City Already Exists");
     }
 
     const updatedCity = await City.findByIdAndUpdate(
@@ -38,7 +50,7 @@ export const editCity = async (req, res) => {
     );
 
     if (!updatedCity) {
-      return res.status(404).json({ error: "City not found" });
+      return res.status(404).json("City not found");
     }
 
     return res.status(200).json(updatedCity);
@@ -73,7 +85,7 @@ export const deleteCity = async (req, res) => {
 // Controller for getting all cities
 export const getAllCities = async (req, res) => {
   try {
-    const cities = await City.find();
+    const cities = await City.find().sort({ createdAt: -1 });
     return res.json(cities);
   } catch (error) {
     console.error(error);

@@ -11,27 +11,29 @@ export const addUser = async (req, res) => {
 
   try {
     if (!fullName || !email || !password || !phoneNumber || !role) {
-      const imagePath = `public/images/${req.file.filename}`;
-      fs.unlinkSync(imagePath);
-      return res.status(400).json({ error: "All fields are required" });
-    }
-
-    if (!req.file) {
-      return res.status(400).json({ error: "Please upload an image" });
+      if (req.file) {
+        const imagePath = `public/images/${req.file.filename}`;
+        fs.unlinkSync(imagePath);
+      }
+      return res.status(400).json("All fields are required");
     }
 
     const existingUser = await User.findOne({ email: email });
 
     if (existingUser) {
-      const imagePath = `public/images/${req.file.filename}`;
-      fs.unlinkSync(imagePath);
-      return res.status(400).json({ error: "Email already exists" });
+      if (req.file) {
+        const imagePath = `public/images/${req.file.filename}`;
+        fs.unlinkSync(imagePath);
+      }
+      return res.status(400).json("Email already exists");
     }
 
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    const image = req.file.filename;
+    if (req.file) {
+      var image = req.file.filename;
+    }
 
     const newUser = await User.create({
       fullName,
@@ -43,14 +45,18 @@ export const addUser = async (req, res) => {
     });
 
     if (!newUser) {
-      const imagePath = `public/images/${req.file.filename}`;
-      fs.unlinkSync(imagePath);
+      if (req.file) {
+        const imagePath = `public/images/${req.file.filename}`;
+        fs.unlinkSync(imagePath);
+      }
     }
 
     return res.status(200).json(newUser);
   } catch (error) {
-    const imagePath = `public/images/${req.file.filename}`;
-    fs.unlinkSync(imagePath);
+    if (req.file) {
+      const imagePath = `public/images/${req.file.filename}`;
+      fs.unlinkSync(imagePath);
+    }
     console.error(error);
     return res.status(500).json({ err: "Internal Server Error", msg: error });
   }
@@ -67,28 +73,29 @@ export const editUser = async (req, res) => {
     role,
     phoneNumber,
     status,
+    admin,
   } = req.body;
 
   try {
     if (!mongoose.isValidObjectId(id)) {
-      return res.status(400).json({ error: "Invalid user ID" });
+      return res.status(400).json("Invalid user ID");
     }
 
     const existingUser = await User.findById(id);
 
-    if (password) {
+    if (!admin && password) {
       const arePasswordSame = await bcrypt.compare(
         checkPassword,
         existingUser.password
       );
 
-      if (!arePasswordSame) {
-        return res.status(401).json({ message: "Invalid password" });
+      if (!admin && !arePasswordSame) {
+        return res.status(401).json("Invalid password");
       }
     }
 
     if (!existingUser) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json("User not found");
     }
 
     let updatedImage = existingUser.image;

@@ -7,11 +7,12 @@ import {
   getOneRating,
   getRatingBySpace,
   getRatingByUser,
+  getRatingsByManagerId,
 } from "../controllers/ratingController.js";
 
 const ratingRouter = express.Router();
 
-// Route for adding a new rating
+// Route for adding a new rat ing
 ratingRouter.post("/", addRating);
 
 // Route for editing a rating
@@ -31,5 +32,7 @@ ratingRouter.post("/byUser", getRatingByUser);
 
 // Route for getting one rating by space
 ratingRouter.post("/bySpace", getRatingBySpace);
+
+ratingRouter.post("/byUser_Space", getRatingsByManagerId);
 
 export default ratingRouter;

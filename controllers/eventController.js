@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Event from "../models/eventsModel.js";
+import Space from "../models/spaceModel.js";
 
 // Controller for adding a new event
 export const addEvent = async (req, res) => {
@@ -7,19 +8,27 @@ export const addEvent = async (req, res) => {
     const { spaceId, title, startDate, endDate, description } = req.body;
 
     if (!mongoose.isValidObjectId(spaceId)) {
-      return res.status(400).json({ error: "Invalid event ID" });
+      return res.status(400).json("Invalid event ID");
     }
 
     if (!spaceId || !title || !startDate || !endDate || !description) {
-      return res.status(400).json({ error: "All fields are required" });
+      return res.status(400).json("All fields are required");
     }
 
+    const space = await Space.findById(spaceId);
+
+    if (!space) {
+      return res.status(400).json("Space Not Found");
+    }
+
+    const name = space.name;
     const newEvent = await Event.create({
       spaceId,
       title,
       startDate,
       endDate,
       description,
+      spaceName: name,
     });
 
     return res.status(200).json(newEvent);
@@ -37,7 +46,7 @@ export const editEvent = async (req, res) => {
 
   try {
     if (!mongoose.isValidObjectId(id)) {
-      return res.status(400).json({ error: "Invalid event ID" });
+      return res.status(400).json("Invalid event ID");
     }
 
     const { spaceId, title, startDate, endDate, description } = req.body;
@@ -55,7 +64,7 @@ export const editEvent = async (req, res) => {
     );
 
     if (!updatedEvent) {
-      return res.status(404).json({ error: "Event not found" });
+      return res.status(404).json("Event not found");
     }
 
     return res.status(200).json(updatedEvent);
@@ -73,13 +82,13 @@ export const deleteEvent = async (req, res) => {
 
   try {
     if (!mongoose.isValidObjectId(id)) {
-      return res.status(400).json({ error: "Invalid event ID" });
+      return res.status(400).json("Invalid event ID");
     }
 
     const deletedEvent = await Event.findByIdAndDelete(id);
 
     if (!deletedEvent) {
-      return res.status(404).json({ error: "Event not found" });
+      return res.status(404).json("Event not found");
     }
 
     return res.status(200).json({ message: "Event deleted successfully" });
@@ -96,6 +105,22 @@ export const getAllEvents = async (req, res) => {
   try {
     const events = await Event.find()
       .sort({ startDate: 1 })
+      .populate("spaceId");
+    return res.json(events);
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json({ error: "Internal Server Error", msg: error.message });
+  }
+};
+
+// Controller for getting all events by user id
+export const getAllEventsByUser = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const events = await Event.find()
+      .sort({ startDate: -1 })
       .populate("spaceId");
     return res.json(events);
   } catch (error) {
@@ -237,5 +262,23 @@ export const filterEvents = async (req, res) => {
     return res
       .status(500)
       .json({ error: "Internal Server Error", msg: error.message });
+  }
+};
+
+export const getEventsByUserId = async (userId) => {
+  try {
+    // Find spaces belonging to the user
+    const spaces = await Space.find({ userId: userId }).select("_id");
+
+    // Extract space IDs
+    const spaceIds = spaces.map((space) => space._id);
+
+    // Find events associated with the user's spaces
+    const events = await Event.find({ spaceId: { $in: spaceIds } });
+
+    return events;
+  } catch (error) {
+    console.error("Error fetching events by user ID:", error);
+    throw error;
   }
 };

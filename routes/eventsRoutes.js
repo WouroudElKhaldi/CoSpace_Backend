@@ -9,6 +9,7 @@ import {
   searchEventsByName,
   searchEventsByDateRange,
   filterEvents,
+  getEventsByUserId,
 } from "../controllers/eventController.js";
 
 const eventRouter = express.Router();
@@ -39,5 +40,7 @@ eventRouter.post("/byDate", searchEventsByDateRange);
 
 // Route for filter event
 eventRouter.post("/filter", filterEvents);
+
+eventRouter.post("/byUser", getEventsByUserId);
 
 export default eventRouter;
