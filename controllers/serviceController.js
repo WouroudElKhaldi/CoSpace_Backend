@@ -134,7 +134,9 @@ export const deleteService = async (req, res) => {
 // Controller for getting all services
 export const getAllServices = async (req, res) => {
   try {
-    const services = await Service.find().sort({ createdAt: -1 });
+    const services = await Service.find()
+      .sort({ createdAt: -1 })
+      .populate("spaceId");
     return res.json(services);
   } catch (error) {
     console.error(error);

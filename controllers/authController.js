@@ -192,8 +192,11 @@ export const resetPassword = async (req, res) => {
       return res.status(404).json("User Not Found");
     }
 
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
     const newPassword = await User.findByIdAndUpdate(existingUser._id, {
-      password: password,
+      password: hashedPassword,
     });
 
     if (!newPassword) {

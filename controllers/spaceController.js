@@ -4,6 +4,7 @@ import Space from "../models/spaceModel.js";
 import Rating from "../models/ratingModel.js";
 import mongoose from "mongoose";
 import City from "../models/cityModel.js";
+import SpaceImages from "../models/spaceImagesModel.js";
 
 export const addSpace = async (req, res) => {
   try {
@@ -208,23 +209,165 @@ export const deleteSpace = async (req, res) => {
   }
 };
 
+// // Controller for getting all spaces
+// export const getAllSpaces = async (req, res) => {
+//   try {
+//     const { status } = req.body;
+//     if (!status) {
+//       const spaces = await Space.find()
+//         .sort({
+//           createdAt: -1,
+//         })
+//         .populate("categoryId cityId userId");
+//       for (let space of spaces) {
+//         const spaceImages = await SpaceImages.find({ spaceId: space._id });
+//         space.images = spaceImages;
+//       }
+//       return res.status(200).json(spaces);
+//     } else {
+//       const spaces = await Space.find({ status: status })
+//         .sort({
+//           createdAt: -1,
+//         })
+//         .populate("categoryId cityId userId");
+
+//       for (let space of spaces) {
+//         const spaceImages = await SpaceImages.find({ spaceId: space._id });
+//         space.images = spaceImages;
+//       }
+//       return res.status(200).json(spaces);
+//     }
+//   } catch (error) {
+//     console.error(error);
+//     return res
+//       .status(500)
+//       .json({ error: "Internal Server Error", msg: error.message });
+//   }
+// };
+
 // Controller for getting all spaces
+// export const getAllSpaces = async (req, res) => {
+//   try {
+//     const { status } = req.body;
+//     let spacesQuery = Space.find()
+//       .sort({ createdAt: -1 })
+//       .populate("categoryId cityId userId");
+
+//     if (status) {
+//       spacesQuery = spacesQuery.find({ status: status });
+//     }
+
+//     const spaces = await spacesQuery.exec();
+
+//     // Fetch and attach images for each space
+//     for (let space of spaces) {
+//       const spaceImages = await SpaceImages.find({ spaceId: space._id });
+//       space.imagesArray = spaceImages.map((image) => image.image);
+//       console.log(spaceImages);
+//     }
+
+//     return res.json(spaces);
+//   } catch (error) {
+//     console.error(error);
+//     return res
+//       .status(500)
+//       .json({ error: "Internal Server Error", msg: error.message });
+//   }
+// };
 export const getAllSpaces = async (req, res) => {
   try {
     const { status } = req.body;
-    if (!status) {
-      const spaces = await Space.find()
-        .sort({
-          createdAt: -1,
-        })
-        .populate("categoryId cityId userId");
-      return res.json(spaces);
+
+    let pipeline = [
+      {
+        $sort: { createdAt: -1 },
+      },
+      {
+        $lookup: {
+          from: "spaceimages",
+          localField: "_id",
+          foreignField: "spaceId",
+          as: "images",
+        },
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "categoryId",
+          foreignField: "_id",
+          as: "category",
+        },
+      },
+      {
+        $lookup: {
+          from: "cities",
+          localField: "cityId",
+          foreignField: "_id",
+          as: "city",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      {
+        $lookup: {
+          from: "ratings",
+          localField: "_id",
+          foreignField: "spaceId",
+          as: "ratings",
+        },
+      },
+      {
+        $lookup: {
+          from: "services",
+          localField: "_id",
+          foreignField: "spaceId",
+          as: "services",
+        },
+      },
+      {
+        $unwind: "$category",
+      },
+      {
+        $unwind: "$city",
+      },
+      {
+        $unwind: "$user",
+      },
+      {
+        $addFields: {
+          averageRating: { $avg: "$ratings.rate" },
+        },
+      },
+      {
+        $unwind: "$services",
+      },
+      {
+        $group: {
+          _id: "$_id",
+          data: { $first: "$$ROOT" },
+          dailyPrice: { $min: "$services.dailyPrice" },
+        },
+      },
+      {
+        $replaceRoot: {
+          newRoot: {
+            $mergeObjects: ["$data", { dailyPrice: "$dailyPrice" }],
+          },
+        },
+      },
+    ];
+
+    if (status) {
+      pipeline.unshift({ $match: { status: status } });
     }
-    const spaces = await Space.find({ status: status })
-      .sort({
-        createdAt: -1,
-      })
-      .populate("categoryId cityId userId");
+
+    let spaces = await Space.aggregate(pipeline);
 
     return res.json(spaces);
   } catch (error) {
@@ -244,17 +387,106 @@ export const getOneSpace = async (req, res) => {
       return res.status(400).json({ error: "Invalid space ID" });
     }
 
-    const space = await Space.findById(id)
-      .populate("cityId")
-      .populate("categoryId")
-      .populate("userId")
-      .populate("amenities");
+    let pipeline = [
+      {
+        $match: { _id: new mongoose.Types.ObjectId(id) },
+      },
+      {
+        $lookup: {
+          from: "spaceimages",
+          localField: "_id",
+          foreignField: "spaceId",
+          as: "images",
+        },
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "categoryId",
+          foreignField: "_id",
+          as: "category",
+        },
+      },
+      {
+        $lookup: {
+          from: "amenities",
+          localField: "_id",
+          foreignField: "amenities",
+          as: "amenities",
+        },
+      },
+      {
+        $lookup: {
+          from: "cities",
+          localField: "cityId",
+          foreignField: "_id",
+          as: "city",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      {
+        $lookup: {
+          from: "ratings",
+          localField: "_id",
+          foreignField: "spaceId",
+          as: "ratings",
+        },
+      },
+      {
+        $lookup: {
+          from: "services",
+          localField: "_id",
+          foreignField: "spaceId",
+          as: "services",
+        },
+      },
+      {
+        $unwind: "$category",
+      },
+      {
+        $unwind: "$city",
+      },
+      {
+        $unwind: "$user",
+      },
+      {
+        $addFields: {
+          averageRating: { $avg: "$ratings.rate" },
+        },
+      },
+      {
+        $unwind: "$services",
+      },
+      {
+        $group: {
+          _id: "$_id",
+          data: { $first: "$$ROOT" },
+          dailyPrice: { $min: "$services.dailyPrice" },
+        },
+      },
+      {
+        $replaceRoot: {
+          newRoot: {
+            $mergeObjects: ["$data", { dailyPrice: "$dailyPrice" }],
+          },
+        },
+      },
+    ];
 
-    if (!space) {
+    const space = await Space.aggregate(pipeline);
+
+    if (!space.length) {
       return res.status(404).json({ error: "Space not found" });
     }
 
-    return res.status(200).json(space);
+    return res.status(200).json(space[0]);
   } catch (error) {
     console.error(error);
     return res
@@ -425,6 +657,44 @@ export const getSpacesByCity = async (req, res) => {
 export const filterSpaces = async (req, res) => {
   try {
     const { minPrice, maxPrice, amenities, categories } = req.body;
+
+    let exactMinPrice = 0;
+    let exactMaxPrice = 10000000000000;
+
+    if (minPrice && minPrice > 0 && maxPrice && maxPrice > 0) {
+      exactMinPrice = minPrice;
+      exactMaxPrice = maxPrice;
+    }
+    const services = await Service.find({
+      dailyPrice: { $gte: exactMinPrice, $lte: exactMaxPrice },
+    });
+
+    // Extract space IDs from the found services
+    const spaceIds = services.map((service) => service.spaceId);
+
+    // Query spaces collection with the extracted space IDs
+    let spaces = await Space.find({
+      _id: { $in: spaceIds },
+      status: "Accepted",
+    }).populate("userId amenities cityId categoryId");
+
+    // Filter spaces by categoryIds
+    if (categories && categories.length > 0) {
+      spaces = spaces.filter((space) =>
+        categories.includes(String(space.categoryId._id))
+      );
+    }
+
+    // Filter spaces by amenities
+    if (amenities && amenities.length > 0) {
+      spaces = spaces.filter((space) =>
+        space.amenities.some((amenity) =>
+          amenities.includes(String(amenity._id))
+        )
+      );
+    }
+
+    return res.status(200).json(spaces);
   } catch (error) {
     console.error(error);
     return res
