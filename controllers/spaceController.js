@@ -410,8 +410,14 @@ export const getOneSpace = async (req, res) => {
       {
         $lookup: {
           from: "amenities",
-          localField: "_id",
-          foreignField: "amenities",
+          let: { amenityIds: "$amenities" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $in: ["$_id", "$$amenityIds"] },
+              },
+            },
+          ],
           as: "amenities",
         },
       },
