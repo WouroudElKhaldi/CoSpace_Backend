@@ -135,7 +135,7 @@ export const verifyAccount = async (req, res) => {
       .status(200)
       .cookie("token", token, {
         httpOnly: true,
-        secure: true,
+        secure: false,
         sameSite: "None",
       })
       .json({ message: "User updated successfuly" });
