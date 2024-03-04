@@ -212,16 +212,29 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-export const loggedInUser = (req, res) => {
-  return res.json({ user: req.user }).status(200);
+// loggedInUser
+export const loggedInUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    return res.json({ user }).status(200);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json(error.message);
+  }
 };
 
-export const logOut = async (req, res) => {
-  try {
-    res.clearCookie("token");
-    return res.status(200).json({ message: "Logout successful" });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Internal Server Error" });
-  }
+export const logOut = (req, res) => {
+  console.log("helloooo");
+  return res
+    .clearCookie("token", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+    })
+    .status(200)
+    .json({ message: "Successfully Logged Out!" });
 };
