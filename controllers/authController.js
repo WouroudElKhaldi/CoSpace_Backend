@@ -215,7 +215,7 @@ export const resetPassword = async (req, res) => {
 // loggedInUser
 export const loggedInUser = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
