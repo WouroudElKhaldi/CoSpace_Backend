@@ -454,6 +454,14 @@ export const getOneSpace = async (req, res) => {
         },
       },
       {
+        $lookup: {
+          from: "rules",
+          localField: "_id",
+          foreignField: "spaceId",
+          as: "rules",
+        },
+      },
+      {
         $unwind: "$category",
       },
       {
@@ -465,6 +473,11 @@ export const getOneSpace = async (req, res) => {
       {
         $addFields: {
           averageRating: { $avg: "$ratings.rate" },
+        },
+      },
+      {
+        $addFields: {
+          allServices: "$services",
         },
       },
       {
@@ -617,6 +630,35 @@ export const getTopRatedSpaces = async (req, res) => {
   }
 };
 
+// // Controller function to search for a space by name or city
+// export const searchSpace = async (req, res) => {
+//   try {
+//     const { data } = req.body;
+
+//     const regexData = new RegExp(data, "i");
+
+//     const city = await City.findOne({
+//       city: { $regex: regexData },
+//     });
+
+//     const spacesByCity = city ? await Space.find({ cityId: city._id }) : [];
+
+//     // Find spaces by name
+//     const spacesByName = await Space.find({
+//       name: { $regex: regexData },
+//       status: "Accepted",
+//     });
+
+//     // Combine the results
+//     const spaces = [...spacesByCity, ...spacesByName];
+
+//     return res.status(200).json(spaces);
+//   } catch (error) {
+//     console.error("Error searching for space:", error);
+//     return res.status(500).json({ message: "Internal server error" });
+//   }
+// };
+
 // Controller function to search for a space by name or city
 export const searchSpace = async (req, res) => {
   try {
@@ -637,7 +679,88 @@ export const searchSpace = async (req, res) => {
     });
 
     // Combine the results
-    const spaces = [...spacesByCity, ...spacesByName];
+    let spaces = [...spacesByCity, ...spacesByName];
+
+    // Aggregation pipeline to populate necessary fields and calculate minimum daily price
+    const pipeline = [
+      {
+        $match: {
+          _id: { $in: spaces.map((space) => space._id) },
+          status: "Accepted",
+        },
+      },
+      {
+        $lookup: {
+          from: "spaceimages",
+          localField: "_id",
+          foreignField: "spaceId",
+          as: "images",
+        },
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "categoryId",
+          foreignField: "_id",
+          as: "category",
+        },
+      },
+      {
+        $lookup: {
+          from: "cities",
+          localField: "cityId",
+          foreignField: "_id",
+          as: "city",
+        },
+      },
+      {
+        $lookup: {
+          from: "ratings",
+          localField: "_id",
+          foreignField: "spaceId",
+          as: "ratings",
+        },
+      },
+      {
+        $lookup: {
+          from: "services",
+          localField: "_id",
+          foreignField: "spaceId",
+          as: "services",
+        },
+      },
+      {
+        $unwind: "$category",
+      },
+      {
+        $unwind: "$city",
+      },
+      {
+        $addFields: {
+          averageRating: { $avg: "$ratings.rate" },
+        },
+      },
+      {
+        $unwind: "$services",
+      },
+      {
+        $group: {
+          _id: "$_id",
+          data: { $first: "$$ROOT" },
+          dailyPrice: { $min: "$services.dailyPrice" },
+        },
+      },
+      {
+        $replaceRoot: {
+          newRoot: {
+            $mergeObjects: ["$data", { dailyPrice: "$dailyPrice" }],
+          },
+        },
+      },
+    ];
+
+    // Execute the aggregation pipeline
+    spaces = await Space.aggregate(pipeline);
 
     return res.status(200).json(spaces);
   } catch (error) {
@@ -660,6 +783,7 @@ export const getSpacesByCity = async (req, res) => {
   }
 };
 
+// Controller for filtering spaces
 export const filterSpaces = async (req, res) => {
   try {
     const { minPrice, maxPrice, amenities, categories } = req.body;
@@ -671,6 +795,8 @@ export const filterSpaces = async (req, res) => {
       exactMinPrice = minPrice;
       exactMaxPrice = maxPrice;
     }
+
+    // Query services collection to find services within price range
     const services = await Service.find({
       dailyPrice: { $gte: exactMinPrice, $lte: exactMaxPrice },
     });
@@ -678,16 +804,101 @@ export const filterSpaces = async (req, res) => {
     // Extract space IDs from the found services
     const spaceIds = services.map((service) => service.spaceId);
 
-    // Query spaces collection with the extracted space IDs
-    let spaces = await Space.find({
-      _id: { $in: spaceIds },
-      status: "Accepted",
-    }).populate("userId amenities cityId categoryId");
+    // Aggregation pipeline to filter spaces and populate necessary fields
+    const pipeline = [
+      {
+        $match: {
+          _id: { $in: spaceIds },
+          status: "Accepted",
+        },
+      },
+      {
+        $lookup: {
+          from: "spaceimages",
+          localField: "_id",
+          foreignField: "spaceId",
+          as: "images",
+        },
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "categoryId",
+          foreignField: "_id",
+          as: "category",
+        },
+      },
+      {
+        $unwind: "$category",
+      },
+      {
+        $lookup: {
+          from: "cities",
+          localField: "cityId",
+          foreignField: "_id",
+          as: "city",
+        },
+      },
+      {
+        $unwind: "$city",
+      },
+      {
+        $lookup: {
+          from: "ratings",
+          localField: "_id",
+          foreignField: "spaceId",
+          as: "ratings",
+        },
+      },
+      {
+        $addFields: {
+          averageRating: { $avg: "$ratings.rate" },
+        },
+      },
+      {
+        $project: {
+          "ratings.spaceId": 0,
+        },
+      },
+      {
+        $lookup: {
+          from: "services",
+          localField: "_id",
+          foreignField: "spaceId",
+          as: "services",
+        },
+      },
+      {
+        $addFields: {
+          allServices: "$services",
+        },
+      },
+      {
+        $unwind: "$services",
+      },
+      {
+        $group: {
+          _id: "$_id",
+          data: { $first: "$$ROOT" },
+          dailyPrice: { $min: "$services.dailyPrice" },
+        },
+      },
+      {
+        $replaceRoot: {
+          newRoot: {
+            $mergeObjects: ["$data", { dailyPrice: "$dailyPrice" }],
+          },
+        },
+      },
+    ];
+
+    // Execute the aggregation pipeline
+    let spaces = await Space.aggregate(pipeline);
 
     // Filter spaces by categoryIds
     if (categories && categories.length > 0) {
       spaces = spaces.filter((space) =>
-        categories.includes(String(space.categoryId._id))
+        categories.includes(String(space.category._id))
       );
     }
 
