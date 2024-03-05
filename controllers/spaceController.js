@@ -5,6 +5,7 @@ import Rating from "../models/ratingModel.js";
 import mongoose from "mongoose";
 import City from "../models/cityModel.js";
 import SpaceImages from "../models/spaceImagesModel.js";
+import Rule from "../models/rulesModel.js";
 
 export const addSpace = async (req, res) => {
   try {
@@ -196,6 +197,38 @@ export const deleteSpace = async (req, res) => {
       await Service.findByIdAndDelete(service._id);
     }
 
+    // Find all events associated with the space
+    const eventsToDelete = await Event.find({ spaceId: id });
+
+    // Delete all events associated with the space
+    for (const event of eventsToDelete) {
+      await Event.findByIdAndDelete(event._id);
+    }
+
+    // Find all rules associated with the space
+    const rulesToDelete = await Rule.find({ spaceId: id });
+
+    // Delete all rules associated with the space
+    for (const rule of rulesToDelete) {
+      await Rule.findByIdAndDelete(rule._id);
+    }
+
+    // Find all space images associated with the space
+    const spaceImagesToDelete = await SpaceImages.find({ spaceId: id });
+
+    // Delete all space images associated with the space
+    for (const spaceImage of spaceImagesToDelete) {
+      await SpaceImages.findByIdAndDelete(spaceImage._id);
+    }
+
+    // Find all ratings associated with the space
+    const ratingsToDelete = await Rating.find({ spaceId: id });
+
+    // Delete all ratings associated with the space
+    for (const rating of ratingsToDelete) {
+      await Rating.findByIdAndDelete(rating._id);
+    }
+
     // Delete the space itself
     const deletedSpace = await Space.findByIdAndDelete(id);
 
@@ -203,9 +236,10 @@ export const deleteSpace = async (req, res) => {
       return res.status(404).json({ error: "Space not found" });
     }
 
-    return res
-      .status(200)
-      .json({ message: "Space and associated services deleted successfully" });
+    return res.status(200).json({
+      message:
+        "Space and associated services, events, rules, and space images deleted successfully",
+    });
   } catch (error) {
     console.error(error);
     return res
