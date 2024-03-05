@@ -29,7 +29,8 @@ export const addSpace = async (req, res) => {
       !longitude ||
       !latitude ||
       !description ||
-      !categoryId
+      !categoryId ||
+      !email
     ) {
       return res.status(400).json("All fields are required");
     }
@@ -53,6 +54,10 @@ export const addSpace = async (req, res) => {
       categoryId: categoryId,
       userId: user._id,
     });
+
+    if (!newSpace) {
+      return res.status(404).json("Space Not Added");
+    }
 
     return res.status(200).json(newSpace);
   } catch (error) {
